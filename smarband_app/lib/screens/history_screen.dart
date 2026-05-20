@@ -305,8 +305,10 @@ class _ChartCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final groups = isDaily ? _buildDailyGroups() : _buildWeeklyGroups();
-    final maxY = groups.fold<double>(0, (m, g) =>
-        m > (g.barRods.fold<double>(0, (s, r) => s + r.toY)) ? m : (g.barRods.fold<double>(0, (s, r) => s + r.toY)));
+    final maxY = groups.fold<double>(0, (m, g) {
+      final groupMax = g.barRods.fold<double>(0, (prev, r) => r.toY > prev ? r.toY : prev);
+      return groupMax > m ? groupMax : m;
+    });
     final yMax = (maxY < 4 ? 4 : maxY + 1).ceilToDouble();
 
     return Container(
@@ -432,8 +434,8 @@ class _ChartCard extends StatelessWidget {
         x: entry.key,
         barsSpace: 2,
         barRods: [
-          BarChartRodData(toY: w, color: const Color(0xFFF5A623), width: 8, borderRadius: BorderRadius.circular(3)),
-          BarChartRodData(toY: d, color: const Color(0xFFD32F2F), width: 8, borderRadius: BorderRadius.circular(3)),
+          if (w > 0) BarChartRodData(toY: w, color: const Color(0xFFF5A623), width: 8, borderRadius: BorderRadius.circular(3)),
+          if (d > 0) BarChartRodData(toY: d, color: const Color(0xFFD32F2F), width: 8, borderRadius: BorderRadius.circular(3)),
         ],
       );
     }).toList()..sort((a, b) => a.x.compareTo(b.x));

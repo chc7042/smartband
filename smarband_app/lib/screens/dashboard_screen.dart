@@ -242,11 +242,10 @@ class _LastEventTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final timeText = event == null
+    final todayEvent = event != null && _isToday(event!.timestamp) ? event : null;
+    final timeText = todayEvent == null
         ? '-'
-        : _isToday(event!.timestamp)
-            ? '${event!.timestamp.hour.toString().padLeft(2, '0')}:${event!.timestamp.minute.toString().padLeft(2, '0')}'
-            : '-';
+        : '${todayEvent.timestamp.hour.toString().padLeft(2, '0')}:${todayEvent.timestamp.minute.toString().padLeft(2, '0')}';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -266,8 +265,8 @@ class _LastEventTile extends StatelessWidget {
               Text(timeText, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF444444))),
             ],
           ),
-          if (event != null)
-            _EventTag(status: event!.status),
+          if (todayEvent != null)
+            _EventTag(status: todayEvent.status),
         ],
       ),
     );

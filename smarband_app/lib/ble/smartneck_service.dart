@@ -17,17 +17,24 @@ class SmartNeckService {
   StreamSubscription? _scanSub;
   StreamSubscription? _connectionSub;
   StreamSubscription? _valueSub;
+  StreamSubscription? _adapterSub;
   bool _scanning = false;
   bool _reconnecting = false;
+  bool _disposed = false;
 
   // ── 1단계: 스캔 ──────────────────────────────────────────────────────────
   // withServices로 서비스 UUID 필터링 → 기기 이름만으론 iOS 스캔 누락 가능.
-  // 이름 일치 확인 후 즉시 스캔 중단 → 연결 진행.
+  // BT가 꺼져 있으면 _listenAdapterState()로 켜짐을 감지해 재시도.
   // 10초 내 기기 미발견 시 3초 후 재시도.
   Future<void> startScan() async {
-    if (_scanning) return;
-    _scanning = true;
+    if (_disposed || _scanning) return;
 
+    if (FlutterBluePlus.adapterStateNow != BluetoothAdapterState.on) {
+      _listenAdapterState();
+      return;
+    }
+
+    _scanning = true;
     await FlutterBluePlus.stopScan();
 
     _scanSub?.cancel();
@@ -47,10 +54,21 @@ class SmartNeckService {
     );
     _scanning = false;
 
-    if (_device == null) {
+    if (!_disposed && _device == null) {
       await Future.delayed(const Duration(seconds: 3));
       startScan();
     }
+  }
+
+  // BT가 꺼져 있을 때 켜짐 이벤트를 1회 감지해 스캔 재시작
+  void _listenAdapterState() {
+    _adapterSub?.cancel();
+    _adapterSub = FlutterBluePlus.adapterState.listen((state) {
+      if (state == BluetoothAdapterState.on) {
+        _adapterSub?.cancel();
+        startScan();
+      }
+    });
   }
 
   // ── 2단계: 연결 및 서비스 탐색 ──────────────────────────────────────────
@@ -93,13 +111,14 @@ class SmartNeckService {
     }
   }
 
-  // _connectionSub와 catch가 동시에 트리거돼도 재스캔이 한 번만 실행되도록 보장
+  // _connectionSub와 catch가 동시에 트리거돼도 재스캔이 한 번만 실행되도록 보장.
+  // _disposed 체크로 dispose() 후 타이머 콜백이 실행되지 않도록 방지.
   void _scheduleReconnect() {
     if (_reconnecting) return;
     _reconnecting = true;
     Future.delayed(const Duration(seconds: 2), () {
       _reconnecting = false;
-      startScan();
+      if (!_disposed) startScan();
     });
   }
 
@@ -116,6 +135,8 @@ class SmartNeckService {
   }
 
   void dispose() {
+    _disposed = true;
+    _adapterSub?.cancel();
     _scanSub?.cancel();
     _connectionSub?.cancel();
     _valueSub?.cancel();

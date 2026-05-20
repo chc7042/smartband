@@ -54,7 +54,7 @@ void loop() {
   float x, y, z;
   if (IMU.accelerationAvailable()) {
     IMU.readAcceleration(x, y, z);
-    float angle = abs(y) * 90.0;
+    float angle = asin(constrain(abs(y), 0.0, 1.0)) * 180.0 / PI;
 
     // 디버깅 시에만 활성화 — 9600 baud 출력이 BLE poll 주기를 지연시킴
     // Serial.print("Angle: ");

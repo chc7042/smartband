@@ -23,6 +23,7 @@ class AppState extends ChangeNotifier {
     currentStatus = status;
     if (status != PostureStatus.normal) {
       events.add(PostureEvent(timestamp: DateTime.now(), status: status));
+      if (events.length > 500) events.removeAt(0);
     }
     notifyListeners();
   }
