@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>대시보드 화면 기획</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #f0f2f5;
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      gap: 40px;
+    }
+
+    h1 {
+      font-size: 20px;
+      color: #333;
+      font-weight: 700;
+    }
+
+    .states {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .state-label {
+      font-size: 13px;
+      color: #888;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    /* 폰 프레임 */
+    .phone {
+      width: 375px;
+      background: #fff;
+      border-radius: 36px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+      overflow: hidden;
+      border: 8px solid #1a1a1a;
+      position: relative;
+    }
+
+    .phone-notch {
+      background: #1a1a1a;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .phone-notch::after {
+      content: '';
+      width: 100px;
+      height: 16px;
+      background: #1a1a1a;
+      border-radius: 0 0 14px 14px;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 4px solid #1a1a1a;
+      background: #333;
+    }
+
+    .screen {
+      background: #f8f9fb;
+      min-height: 720px;
+      padding: 0 0 24px;
+    }
+
+    /* 상단 헤더 */
+    .header {
+      background: #fff;
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .app-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+    .ble-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .ble-badge.connected {
+      background: #e6f9f0;
+      color: #00a651;
+    }
+    .ble-badge.disconnected {
+      background: #fdecea;
+      color: #d32f2f;
+    }
+    .ble-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+    .ble-badge.connected .ble-dot { background: #00a651; }
+    .ble-badge.disconnected .ble-dot { background: #d32f2f; }
+
+    .device-name {
+      font-size: 12px;
+      color: #aaa;
+      margin-top: 4px;
+    }
+
+    /* 현재 자세 카드 */
+    .section { padding: 16px 20px 0; }
+
+    .posture-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 28px 20px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .posture-label {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 16px;
+      letter-spacing: 0.5px;
+    }
+    .posture-icon {
+      font-size: 64px;
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+    .posture-status {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .posture-sub {
+      font-size: 13px;
+      color: #aaa;
+    }
+
+    /* BLE 값 뱃지 */
+    .ble-value {
+      display: inline-block;
+      margin-top: 14px;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* 상태별 색상 */
+    .status-normal .posture-status { color: #00a651; }
+    .status-normal .ble-value { background: #e6f9f0; color: #00a651; }
+    .status-normal { border-left: 4px solid #00a651; }
+
+    .status-warning .posture-status { color: #f5a623; }
+    .status-warning .ble-value { background: #fff8e7; color: #f5a623; }
+    .status-warning { border-left: 4px solid #f5a623; }
+
+    .status-danger .posture-status { color: #d32f2f; }
+    .status-danger .ble-value { background: #fdecea; color: #d32f2f; }
+    .status-danger { border-left: 4px solid #d32f2f; }
+
+    /* 오늘 요약 */
+    .summary-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .summary-card {
+      flex: 1;
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      text-align: center;
+    }
+    .summary-card .s-label {
+      font-size: 12px;
+      color: #aaa;
+      margin-bottom: 8px;
+    }
+    .summary-card .s-count {
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .summary-card .s-unit {
+      font-size: 11px;
+      color: #bbb;
+    }
+    .summary-card.warning .s-count { color: #f5a623; }
+    .summary-card.danger .s-count { color: #d32f2f; }
+
+    /* 마지막 이벤트 */
+    .last-event {
+      background: #fff;
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-top: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .last-event .le-label {
+      font-size: 12px;
+      color: #aaa;
+    }
+    .last-event .le-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: #444;
+    }
+    .last-event .le-tag {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+    .le-tag.warning { background: #fff8e7; color: #f5a623; }
+    .le-tag.danger  { background: #fdecea; color: #d32f2f; }
+
+    /* 히스토리 버튼 */
+    .nav-btn {
+      display: block;
+      margin: 20px 20px 0;
+      background: #1a1a1a;
+      color: #fff;
+      text-align: center;
+      padding: 16px;
+      border-radius: 16px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    /* 애노테이션 */
+    .note {
+      font-size: 11px;
+      color: #e53935;
+      background: #fff8f8;
+      border: 1px dashed #e53935;
+      border-radius: 6px;
+      padding: 4px 10px;
+      margin-top: 6px;
+      display: inline-block;
+    }
+    .annotation-box {
+      background: #fffde7;
+      border: 1px solid #f9a825;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-top: 16px;
+    }
+    .annotation-box h3 {
+      font-size: 13px;
+      color: #f57f17;
+      margin-bottom: 8px;
+    }
+    .annotation-box ul {
+      padding-left: 16px;
+      font-size: 12px;
+      color: #555;
+      line-height: 1.8;
+    }
+  </style>
+</head>
+<body>
+
+<h1>대시보드 화면 기획</h1>
+
+<div class="states">
+
+  <!-- 상태 1: 정상 -->
+  <div>
+    <p class="state-label">① 정상 상태 (BLE 값 = 0)</p>
+    <div class="phone">
+      <div class="phone-notch"></div>
+      <div class="screen">
+        <div class="header">
+          <div class="header-row">
+            <span class="app-title">Smarband</span>
+            <span class="ble-badge connected"><span class="ble-dot"></span>연결됨</span>
+          </div>
+          <div class="device-name">SmartNeck</div>
+        </div>
+
+        <div class="section">
+          <div class="posture-card status-normal">
+            <div class="posture-label">현재 자세</div>
+            <div class="posture-icon">🟢</div>
+            <div class="posture-status">정상</div>
+            <div class="posture-sub">올바른 자세를 유지하고 있어요</div>
+            <div class="ble-value">BLE 값: 0</div>
+          </div>
+
+          <div class="summary-row">
+            <div class="summary-card warning">
+              <div class="s-label">오늘 경고</div>
+              <div class="s-count">3</div>
+              <div class="s-unit">회</div>
+            </div>
+            <div class="summary-card danger">
+              <div class="s-label">오늘 위험</div>
+              <div class="s-count">1</div>
+              <div class="s-unit">회</div>
+            </div>
+          </div>
+
+          <div class="last-event">
+            <div>
+              <div class="le-label">마지막 이벤트</div>
+              <div class="le-value">14:32</div>
+            </div>
+            <span class="le-tag warning">경고</span>
+          </div>
+        </div>
+
+        <a class="nav-btn">히스토리 보기 →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 상태 2: 경고 -->
+  <div>
+    <p class="state-label">② 경고 상태 (BLE 값 = 1)</p>
+    <div class="phone">
+      <div class="phone-notch"></div>
+      <div class="screen">
+        <div class="header">
+          <div class="header-row">
+            <span class="app-title">Smarband</span>
+            <span class="ble-badge connected"><span class="ble-dot"></span>연결됨</span>
+          </div>
+          <div class="device-name">SmartNeck</div>
+        </div>
+
+        <div class="section">
+          <div class="posture-card status-warning">
+            <div class="posture-label">현재 자세</div>
+            <div class="posture-icon">🟡</div>
+            <div class="posture-status">경고</div>
+            <div class="posture-sub">목이 60° 이상 기울어졌어요</div>
+            <div class="ble-value">BLE 값: 1</div>
+          </div>
+
+          <div class="summary-row">
+            <div class="summary-card warning">
+              <div class="s-label">오늘 경고</div>
+              <div class="s-count">4</div>
+              <div class="s-unit">회</div>
+            </div>
+            <div class="summary-card danger">
+              <div class="s-label">오늘 위험</div>
+              <div class="s-count">1</div>
+              <div class="s-unit">회</div>
+            </div>
+          </div>
+
+          <div class="last-event">
+            <div>
+              <div class="le-label">마지막 이벤트</div>
+              <div class="le-value">방금</div>
+            </div>
+            <span class="le-tag warning">경고</span>
+          </div>
+        </div>
+
+        <a class="nav-btn">히스토리 보기 →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 상태 3: 위험 -->
+  <div>
+    <p class="state-label">③ 위험 상태 (BLE 값 = 2)</p>
+    <div class="phone">
+      <div class="phone-notch"></div>
+      <div class="screen">
+        <div class="header">
+          <div class="header-row">
+            <span class="app-title">Smarband</span>
+            <span class="ble-badge connected"><span class="ble-dot"></span>연결됨</span>
+          </div>
+          <div class="device-name">SmartNeck</div>
+        </div>
+
+        <div class="section">
+          <div class="posture-card status-danger">
+            <div class="posture-label">현재 자세</div>
+            <div class="posture-icon">🔴</div>
+            <div class="posture-status">위험</div>
+            <div class="posture-sub">목이 80° 이상 기울어졌어요</div>
+            <div class="ble-value">BLE 값: 2</div>
+          </div>
+
+          <div class="summary-row">
+            <div class="summary-card warning">
+              <div class="s-label">오늘 경고</div>
+              <div class="s-count">4</div>
+              <div class="s-unit">회</div>
+            </div>
+            <div class="summary-card danger">
+              <div class="s-label">오늘 위험</div>
+              <div class="s-count">2</div>
+              <div class="s-unit">회</div>
+            </div>
+          </div>
+
+          <div class="last-event">
+            <div>
+              <div class="le-label">마지막 이벤트</div>
+              <div class="le-value">방금</div>
+            </div>
+            <span class="le-tag danger">위험</span>
+          </div>
+        </div>
+
+        <a class="nav-btn">히스토리 보기 →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 상태 4: BLE 끊김 -->
+  <div>
+    <p class="state-label">④ BLE 연결 끊김</p>
+    <div class="phone">
+      <div class="phone-notch"></div>
+      <div class="screen">
+        <div class="header">
+          <div class="header-row">
+            <span class="app-title">Smarband</span>
+            <span class="ble-badge disconnected"><span class="ble-dot"></span>연결 안됨</span>
+          </div>
+          <div class="device-name">SmartNeck 검색 중...</div>
+        </div>
+
+        <div class="section">
+          <div class="posture-card" style="border-left:4px solid #ccc;">
+            <div class="posture-label">현재 자세</div>
+            <div class="posture-icon">⚫</div>
+            <div class="posture-status" style="color:#bbb;">-</div>
+            <div class="posture-sub">기기와 연결되어 있지 않아요</div>
+            <div class="ble-value" style="background:#f5f5f5;color:#aaa;">BLE 연결 필요</div>
+          </div>
+
+          <div class="summary-row">
+            <div class="summary-card warning">
+              <div class="s-label">오늘 경고</div>
+              <div class="s-count" style="color:#ccc;">-</div>
+              <div class="s-unit">회</div>
+            </div>
+            <div class="summary-card danger">
+              <div class="s-label">오늘 위험</div>
+              <div class="s-count" style="color:#ccc;">-</div>
+              <div class="s-unit">회</div>
+            </div>
+          </div>
+        </div>
+
+        <a class="nav-btn">히스토리 보기 →</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 전체 애노테이션 -->
+<div class="annotation-box" style="max-width:900px;width:100%;">
+  <h3>기획 노트</h3>
+  <ul>
+    <li><b>BLE 데이터 출처</b>: Arduino의 <code>dataCharacteristic</code> notify → 값 <code>0</code>=정상 / <code>1</code>=경고 / <code>2</code>=위험</li>
+    <li><b>현재 자세 카드</b>: BLE notify 수신 시 즉시 갱신. 쿨다운(2초) 동안은 마지막 수신 값 유지</li>
+    <li><b>오늘 요약 카운트</b>: 앱 로컬 DB에 이벤트 저장 후 당일 집계 (히스토리 화면과 동일 데이터 소스)</li>
+    <li><b>마지막 이벤트</b>: 가장 최근 경고/위험 이벤트의 시각 + 종류 표시</li>
+    <li><b>알림</b>: BLE 값 1 또는 2 수신 시 로컬 푸시 알림 발송 (앱이 백그라운드일 때도 동작)</li>
+  </ul>
+</div>
+
+</body>
+</html>
