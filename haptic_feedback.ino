@@ -6,8 +6,9 @@ bool lastWarningState = LOW;
 bool lastDangerState = LOW;
 
 void setup() {
-  pinMode(inWarning, INPUT); 
-  pinMode(inDanger, INPUT);
+  // AVR 보드는 INPUT_PULLDOWN 미지원 — 2, 3번 핀에 10kΩ 외부 풀다운 저항 필요
+  pinMode(inWarning, INPUT_PULLDOWN);
+  pinMode(inDanger, INPUT_PULLDOWN);
   pinMode(motorPin, OUTPUT);
 }
 

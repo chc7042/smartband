@@ -35,12 +35,15 @@ arduino-cli upload --fqbn <board> -p <port> neck_posture_ble.ino
 
 ### 자세 감지 로직 (`neck_posture_ble.ino`)
 - LSM6DS3의 Y축 가속도를 읽어 각도 계산: `angle = abs(y) * 90`
-- **경고** (≥60°): 2번 핀을 200 ms 동안 HIGH; BLE 값 `1` 전송
-- **위험** (≥80°): 3번 핀을 200 ms 동안 HIGH; BLE 값 `2` 전송
+- **경고** (≥60°): 2번 핀 200 ms HIGH (논블로킹); BLE 값 `1` 전송
+- **위험** (≥80°): 3번 핀 200 ms HIGH (논블로킹); BLE 값 `2` 전송
+- **정상** (<60°): BLE 값 `0` 전송
 - 트리거 간 2초 쿨다운 (`lastTriggerTime` / `cooldown`)
+- 핀 HIGH → LOW 전환은 `millis()` 기반 논블로킹으로 처리하여 `BLE.poll()` 차단 없음
 - BLE 서비스 UUID `19B10000-…`, 특성 UUID `19B10001-…`, 기기 이름 `"SmartNeck"`; 값 `0` = 정상, `1` = 경고, `2` = 위험
 
 ### 햅틱 응답 로직 (`haptic_feedback.ino`)
 - 상승 에지(rising edge)에서만 트리거되어 신호가 HIGH로 유지되는 동안 중복 실행 방지
-- **경고**: 진동 2회 × 300 ms ON / 200 ms OFF
-- **위험**: 진동 1회 × 1000 ms ON
+- **경고** (≥60°): 진동 1회 × 300 ms ON
+- **위험** (≥80°): 진동 2회 × 500 ms ON / 200 ms OFF
+- 입력 핀(2, 3번)은 `INPUT_PULLDOWN` 사용; AVR 보드는 10kΩ 외부 풀다운 저항 필요

@@ -1,37 +1,34 @@
 #include <Arduino_LSM6DS3.h>
-#include <ArduinoBLE.h> // 블루투스 라이브러리
+#include <ArduinoBLE.h>
 
 BLEService smartNeckService("19B10000-E8F2-537E-4F6C-D104768A1214");
 BLEUnsignedCharCharacteristic dataCharacteristic("19B10001-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify);
 
-const int toWarning = 2; 
-const int toDanger = 3;  
+const int toWarning = 2;
+const int toDanger = 3;
 
-unsigned long lastTriggerTime = 0; 
-const long cooldown = 2000;        
+unsigned long lastTriggerTime = 0;
+const long cooldown = 2000;
+
+int pulsePin = -1;
+unsigned long pulseEndTime = 0;
 
 void setup() {
   Serial.begin(9600);
 
   if (!IMU.begin()) {
-    while (1); // IMU 에러 발생 시 대기
+    while (1);
   }
 
-  // 블루투스 스타트!
   if (!BLE.begin()) {
-    while (1); // 블루투스 에러 발생 시 대기
+    while (1);
   }
 
-  // 아이폰이 알아볼 수 있게 이름과 주소 등록
-  BLE.setLocalName("SmartNeck"); 
+  BLE.setLocalName("SmartNeck");
   BLE.setAdvertisedService(smartNeckService);
   smartNeckService.addCharacteristic(dataCharacteristic);
   BLE.addService(smartNeckService);
-  
-  // 데이터 초기값 0 세팅
   dataCharacteristic.writeValue(0);
-
-  // 전파 방송 시작 (여기서 전파가 뿜어져 나옵니다!)
   BLE.advertise();
 
   pinMode(toWarning, OUTPUT);
@@ -40,39 +37,44 @@ void setup() {
   digitalWrite(toDanger, LOW);
 }
 
+void startPulse(int pin) {
+  pulsePin = pin;
+  digitalWrite(pin, HIGH);
+  pulseEndTime = millis() + 200;
+}
+
 void loop() {
-  // 아이폰 연결 대기 코드를 제거하여, 스캔 단계에서도 신호가 끊기지 않게 합니다.
-  BLE.poll(); 
+  BLE.poll();
+
+  if (pulsePin >= 0 && millis() >= pulseEndTime) {
+    digitalWrite(pulsePin, LOW);
+    pulsePin = -1;
+  }
 
   float x, y, z;
   if (IMU.accelerationAvailable()) {
     IMU.readAcceleration(x, y, z);
-    
-    // Y축 기준으로 각도 계산 (0~90도)
-    float angle = abs(y) * 90.0; 
+    float angle = abs(y) * 90.0;
 
-    // 디버깅용 시리얼 출력
-    Serial.print("Angle: ");
-    Serial.println(angle); 
+    // 디버깅 시에만 활성화 — 9600 baud 출력이 BLE poll 주기를 지연시킴
+    // Serial.print("Angle: ");
+    // Serial.println(angle);
 
-    if (millis() - lastTriggerTime > cooldown) {
-      if (angle >= 80) { 
-        sendPulse(toDanger);
-        dataCharacteristic.writeValue(2); // 블루투스로 숫자 '2' 전송
-        lastTriggerTime = millis();
-      } 
-      else if (angle >= 60) { 
-        sendPulse(toWarning);
-        dataCharacteristic.writeValue(1); // 블루투스로 숫자 '1' 전송
+    if (angle >= 80) {
+      if (millis() - lastTriggerTime > cooldown) {
+        startPulse(toDanger);
+        dataCharacteristic.writeValue(2);
         lastTriggerTime = millis();
       }
+    } else if (angle >= 60) {
+      if (millis() - lastTriggerTime > cooldown) {
+        startPulse(toWarning);
+        dataCharacteristic.writeValue(1);
+        lastTriggerTime = millis();
+      }
+    } else {
+      if (dataCharacteristic.value() != 0)
+        dataCharacteristic.writeValue(0);
     }
   }
-  delay(100); 
-}
-
-void sendPulse(int pin) {
-  digitalWrite(pin, HIGH);
-  delay(200); 
-  digitalWrite(pin, LOW);
 }
