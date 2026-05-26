@@ -1,14 +1,13 @@
-const int inWarning = 2; 
-const int inDanger = 3;  
-const int motorPin = 5;  
+const int inWarning = 2;
+const int inDanger = 3;
+const int motorPin = 5;
 
 bool lastWarningState = LOW;
 bool lastDangerState = LOW;
 
 void setup() {
-  // AVR 보드는 INPUT_PULLDOWN 미지원 — 2, 3번 핀에 10kΩ 외부 풀다운 저항 필요
-  pinMode(inWarning, INPUT_PULLDOWN);
-  pinMode(inDanger, INPUT_PULLDOWN);
+  pinMode(inWarning, INPUT);
+  pinMode(inDanger, INPUT);
   pinMode(motorPin, OUTPUT);
 }
 
@@ -16,11 +15,11 @@ void loop() {
   bool currentWarning = digitalRead(inWarning);
   bool currentDanger = digitalRead(inDanger);
 
-  // 위험: 진동 2번 (기획안 기준)
+  // 위험: 진동 2회 × 500ms ON / 200ms OFF
   if (currentDanger == HIGH && lastDangerState == LOW) {
     vibrate(2, 500, 200);
   }
-  // 경고: 진동 1번
+  // 경고: 진동 1회 × 300ms ON
   else if (currentWarning == HIGH && lastWarningState == LOW) {
     vibrate(1, 300, 0);
   }
