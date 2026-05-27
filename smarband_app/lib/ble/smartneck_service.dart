@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../models/posture_event.dart';
 
 class SmartNeckService {
@@ -22,12 +24,32 @@ class SmartNeckService {
   bool _reconnecting = false;
   bool _disposed = false;
 
+  // ── 0단계: 런타임 권한 요청 ─────────────────────────────────────────────
+  // Android 12+(API 31+): BLUETOOTH_SCAN · BLUETOOTH_CONNECT 권한이 없으면
+  // startScan()이 묵묵히 실패함. iOS는 permission_handler 불필요(BT 다이얼로그 자동).
+  Future<bool> _requestPermissions() async {
+    if (!Platform.isAndroid) return true;
+    final statuses = await [
+      Permission.bluetoothScan,
+      Permission.bluetoothConnect,
+      Permission.location, // Android 11 이하에서 스캔에 필요
+    ].request();
+    return statuses.values.every((s) => s.isGranted);
+  }
+
   // ── 1단계: 스캔 ──────────────────────────────────────────────────────────
-  // withServices로 서비스 UUID 필터링 → 기기 이름만으론 iOS 스캔 누락 가능.
+  // withNames로 기기 이름 필터링.
+  // - Android: withServices(128비트 UUID)는 광고 패킷 크기 한도(31바이트)
+  //   문제로 매칭 실패가 잦아 withNames 사용.
+  // - iOS: 백그라운드/캐시 상태에서 이름이 안 보일 수 있으나,
+  //   연결 후 discoverServices로 UUID 재확인하므로 보안 문제 없음.
   // BT가 꺼져 있으면 _listenAdapterState()로 켜짐을 감지해 재시도.
   // 10초 내 기기 미발견 시 3초 후 재시도.
   Future<void> startScan() async {
     if (_disposed || _scanning) return;
+
+    final granted = await _requestPermissions();
+    if (!granted) return; // 권한 거부 시 스캔 중단
 
     if (FlutterBluePlus.adapterStateNow != BluetoothAdapterState.on) {
       _listenAdapterState();
@@ -49,7 +71,7 @@ class SmartNeckService {
     });
 
     await FlutterBluePlus.startScan(
-      withServices: [_serviceUuid],
+      withNames: [_deviceName],
       timeout: const Duration(seconds: 10),
     );
     _scanning = false;
